@@ -38,11 +38,11 @@ df_clean <- df_clean |>
   mutate(across(c(condition, grade, zipcode), as.factor))
 
 # ---- 3. Primary analysis set ----
-# This code sets a random seed for reproducibility, filters rows where yr_built > 1950 and bathrooms is between 1 and 2, then randomly samples 500 rows from df_clean into df_primary.
+# This code sets a random seed for reproducibility, filters rows where yr_built > 1950 and berooms is between 2 and 4, then randomly samples 500 rows from df_clean into df_primary.
 set.seed(50685)
 df_primary <- df_clean |>
   filter(yr_built > 1950,
-         between(bathrooms, 1, 2)) |>
+         between(bedrooms %in% c(2, 3, 4)) |>
   slice_sample(n = 500)
 
 # These lines display the structure of df_primary, the minimum year built, and the unique bathroom counts in the filtered dataset.
@@ -55,8 +55,8 @@ unique(df_primary$bathrooms)
 ci95 <- t.test(df_primary$price, conf.level = 0.95)$conf.int
 cat(sprintf("95%% CI for price: $%0.0f – $%0.0f\n", ci95[1], ci95[2]))
 
-# This code performs a one-tailed t-test to check if the mean price is greater than $550,000 and prints the t-statistic and p-value.
-tt  <- t.test(df_primary$price, mu = 550000, alternative = "greater")
+# This code performs a one-tailed t-test to check if the mean price is greater than $650,000 and prints the t-statistic and p-value.
+tt  <- t.test(df_primary$price, mu = 650000, alternative = "greater")
 cat(sprintf("t = %.2f, one-tailed p = %.4f\n", tt$statistic, tt$p.value))
 
 # ---- 5. Full multiple-regression model ----
@@ -114,16 +114,16 @@ df_clean <- df_clean |>
 # ---- 10. Prediction for Abhinav’s property ----
 # This code creates a one-row tibble representing a new house with specified characteristics, matching factor levels from df_primary, for use in prediction.
 new_house <- tibble(
-  bedrooms       = 3,
-  bathrooms      = 1.75,
-  sqft_living    = 3400,
+  bedrooms       = 4,
+  bathrooms      = 3,
+  sqft_living    = 3600,
   sqft_lot       = 250000,
   floors         = 2,
   condition      = factor(4, levels(df_primary$condition)),
   grade          = factor(5, levels(df_primary$grade)),
-  sqft_above     = 2400,
+  sqft_above     = 2600,
   sqft_basement  = 1000,
-  yr_built       = 2000,
+  yr_built       = 1986,
   zipcode        = factor(98133, levels(df_primary$zipcode)),
   lat            = 47.3754,
   long           = -122.353
@@ -141,11 +141,12 @@ leveneTest(price ~ factor(bedrooms), data = df_primary)
 summary(anova_bed)
 plot(TukeyHSD(anova_bed), las = 1)
 
-# This code performs ANOVA on price by bathrooms, tests for equal variances, displays the ANOVA summary, and plots Tukey’s HSD results.
-anova_bath <- aov(price ~ factor(bathrooms), data = df_primary)
-leveneTest(price ~ factor(bathrooms), data = df_primary)
-summary(anova_bath)
-plot(TukeyHSD(anova_bath), las = 1)
+# This code performs ANOVA on price by floors, tests for equal variances,
+# displays the ANOVA summary, and plots Tukey’s HSD results.
+anova_floor <- aov(price ~ factor(floors), data = df_primary)
+leveneTest(price ~ factor(floors), data = df_primary)
+summary(anova_floor)
+plot(TukeyHSD(anova_floor), las = 1)
 
 # This code performs ANOVA on price by condition, tests for equal variances, shows the summary, and plots Tukey’s HSD to compare condition levels.
 anova_cond <- aov(price ~ condition, data = df_primary)
