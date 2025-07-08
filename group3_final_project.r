@@ -59,7 +59,7 @@ cat(sprintf("95%% CI for price: $%0.0f – $%0.0f\n", ci95[1], ci95[2]))
 tt  <- t.test(df_primary$price, mu = 650000, alternative = "greater")
 cat(sprintf("t = %.2f, one-tailed p = %.4f\n", tt$statistic, tt$p.value))
 # Regression
-# a. Full multiple-regression model
+# 1. Full multiple-regression model
 # fits a multiple linear regression model predicting price using the listed variables from df_primary and displays a summary of the results
 full_mod <- lm(
   price ~ bedrooms + bathrooms + sqft_living + sqft_lot + floors +
@@ -75,12 +75,12 @@ summary(full_mod)
 reduced_mod <- step(full_mod, direction = "backward", trace = 0)
 summary(reduced_mod)
 
-# b. Robust (HC1) SEs
+# 2. Robust (HC1) SEs
 # calculates and prints robust standard errors for the reduced_mod regression model using heteroskedasticity-consistent (HC1) covariance
 robust_se  <- coeftest(reduced_mod, vcov. = vcovHC(reduced_mod, type = "HC1"))
 print(robust_se)
 
-# c. Assumption checks for LINE
+# 3. Assumption checks for LINE
 ## creates a residuals vs. fitted values plot to visually check linearity and homoscedasticity in the regression model
 ggplot(reduced_mod, aes(.fitted, .resid)) +
   geom_point(alpha = .6) +
@@ -91,7 +91,7 @@ ggplot(reduced_mod, aes(.fitted, .resid)) +
 ## creates a Q-Q plot of the residuals from reduced_mod to assess whether they are normally distributed
 ggqqplot(residuals(reduced_mod), title = "Q-Q Plot")
 
-# d. Multicollinearity
+# 4. Multicollinearity
 # calculates the Variance Inflation Factor (VIF) for each predictor in the reduced_mod to assess multicollinearity
 vif_vals <- vif(reduced_mod)
 
@@ -111,7 +111,7 @@ df_clean <- df_clean |>
   )
 
 
-# e. Prediction for Abhinav’s property 
+# 5. Prediction for Abhinav’s property 
 # creates a one-row tibble representing a new house with specified characteristics, matching factor levels from df_primary, for use in prediction
 new_house <- tibble(
   bedrooms       = 4,
