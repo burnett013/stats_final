@@ -58,44 +58,44 @@ cat(sprintf("95%% CI for price: $%0.0f – $%0.0f\n", ci95[1], ci95[2]))
 # This code performs a one-tailed t-test to check if the mean price is greater than $650,000 and prints the t-statistic and p-value.
 tt  <- t.test(df_primary$price, mu = 650000, alternative = "greater")
 cat(sprintf("t = %.2f, one-tailed p = %.4f\n", tt$statistic, tt$p.value))
-
-# ---- 5. Full multiple-regression model ----
-# This code fits a multiple linear regression model predicting price using the listed variables from df_primary and displays a summary of the results.
+# Regression (Chelsea)
+# a.Full multiple-regression model
+# fits a multiple linear regression model predicting price using the listed variables from df_primary and displays a summary of the results
 full_mod <- lm(
   price ~ bedrooms + bathrooms + sqft_living + sqft_lot + floors +
     condition + grade + sqft_above + sqft_basement + yr_built +
     zipcode + lat + long,
   data = df_primary
 )
-# This line displays detailed results of the linear regression model full_mod, including coefficients, p-values, R-squared, and residual statistics.
+# displays detailed results of the linear regression model full_mod, including coefficients, p-values, R-squared, and residual statistics
 summary(full_mod)
 
-# ---- 6. Reduced model via backward elimination ----
-# This code performs backward stepwise regression on full_mod to remove non-significant variables and displays the summary of the simplified model.
+# Reduced model via backward elimination
+# performs backward stepwise regression on full_mod to remove non-significant variables and displays the summary of the simplified model
 reduced_mod <- step(full_mod, direction = "backward", trace = 0)
 summary(reduced_mod)
 
-# ---- 7. Robust (HC1) SEs ----
-# This code calculates and prints robust standard errors for the reduced_mod regression model using heteroskedasticity-consistent (HC1) covariance.
+# b. Robust (HC1) SEs
+# calculates and prints robust standard errors for the reduced_mod regression model using heteroskedasticity-consistent (HC1) covariance
 robust_se  <- coeftest(reduced_mod, vcov. = vcovHC(reduced_mod, type = "HC1"))
 print(robust_se)
 
-# ---- 8. Assumption checks ----
-## This code creates a residuals vs. fitted values plot to visually check linearity and homoscedasticity in the regression model.
+# c. Assumption checks for LINE
+## creates a residuals vs. fitted values plot to visually check linearity and homoscedasticity in the regression model
 ggplot(reduced_mod, aes(.fitted, .resid)) +
   geom_point(alpha = .6) +
   geom_smooth(se = FALSE, colour = "red") +
   labs(title = "Residuals vs Fitted", x = "Fitted values", y = "Residuals") +
   theme_minimal()
 
-## This code creates a Q-Q plot of the residuals from reduced_mod to assess whether they are normally distributed.
+## creates a Q-Q plot of the residuals from reduced_mod to assess whether they are normally distributed
 ggqqplot(residuals(reduced_mod), title = "Q-Q Plot")
 
-# ---- 9. VIF (multicollinearity) ----
-# This code calculates the Variance Inflation Factor (VIF) for each predictor in the reduced_mod to assess multicollinearity.
+# d. Multicollinearity
+# calculates the Variance Inflation Factor (VIF) for each predictor in the reduced_mod to assess multicollinearity
 vif_vals <- vif(reduced_mod)
 
-# This code creates a data frame listing each predictor (feature) and its corresponding VIF value to evaluate multicollinearity.
+# creates a data frame listing each predictor (feature) and its corresponding VIF value to evaluate multicollinearity
 vif_df <- data.frame(
   feature = rownames(as.data.frame(vif_vals)),
   VIF = as.numeric(vif_vals)
@@ -111,8 +111,8 @@ df_clean <- df_clean |>
   )
 
 
-# ---- 10. Prediction for Abhinav’s property ----
-# This code creates a one-row tibble representing a new house with specified characteristics, matching factor levels from df_primary, for use in prediction.
+# e. Prediction for Abhinav’s property 
+# creates a one-row tibble representing a new house with specified characteristics, matching factor levels from df_primary, for use in prediction
 new_house <- tibble(
   bedrooms       = 4,
   bathrooms      = 3,
@@ -129,7 +129,7 @@ new_house <- tibble(
   long           = -122.353
 )
 
-# This code predicts the house price and 95% prediction interval using reduced_mod for new_house, then prints the results in a formatted sentence.
+# predicts the house price and 95% prediction interval using reduced_mod for new_house, then prints the results in a formatted sentence
 pred_price <- predict(reduced_mod, newdata = new_house, interval = "prediction")
 cat(sprintf("Predicted price: $%0.2f (95%% PI: %0.2f – %0.2f)\n",
             pred_price[1], pred_price[2], pred_price[3]))
