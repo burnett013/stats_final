@@ -58,8 +58,8 @@ cat(sprintf("95%% CI for price: $%0.0f – $%0.0f\n", ci95[1], ci95[2]))
 # This code performs a one-tailed t-test to check if the mean price is greater than $650,000 and prints the t-statistic and p-value.
 tt  <- t.test(df_primary$price, mu = 650000, alternative = "greater")
 cat(sprintf("t = %.2f, one-tailed p = %.4f\n", tt$statistic, tt$p.value))
-# Regression (Chelsea)
-# a.Full multiple-regression model
+# Regression
+# a. Full multiple-regression model
 # fits a multiple linear regression model predicting price using the listed variables from df_primary and displays a summary of the results
 full_mod <- lm(
   price ~ bedrooms + bathrooms + sqft_living + sqft_lot + floors +
