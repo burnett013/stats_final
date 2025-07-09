@@ -15,7 +15,7 @@ packages <- c(
   "multcomp", "multcompView" # Tukey HSD tools
 )
 
-# This line loads each package in packages, installing it first if it's missing, and hides the output
+# This line loads each package, installing it first if it's missing, and hides the output
 invisible(lapply(packages, function(pkg){
   if(!require(pkg, character.only = TRUE)) install.packages(pkg, quiet = TRUE)
   library(pkg, character.only = TRUE)
@@ -25,6 +25,18 @@ invisible(lapply(packages, function(pkg){
 # ---- 2. Load & clean raw data ----
 file_path <- "Kansas City Housing Raw Data.xlsx"
 df        <- read_excel(file_path)
+
+# Count of zero values in each column
+zero_counts <- colSums(df == 0, na.rm = TRUE)
+print(zero_counts)
+
+# Total number of missing values
+total_nas <- sum(is.na(df))
+cat("Total missing values:", total_nas, "\n")
+
+# Missing values per column
+missing_by_col <- colSums(is.na(df))
+print(missing_by_col)
 
 # replace explicit zeros with NA
 df[df == 0] <- NA
@@ -40,10 +52,15 @@ df_clean <- df_clean |>
 # ---- 3. Primary analysis set ----
 # This code sets a random seed for reproducibility, filters rows where yr_built > 1950 and berooms is between 2 and 4, then randomly samples 500 rows from df_clean into df_primary.
 set.seed(50685)
+
 df_primary <- df_clean |>
-  filter(yr_built > 1950,
-         between(bedrooms %in% c(2, 3, 4)) |>
-  slice_sample(n = 500)
+    filter(yr_built > 1950, bedrooms %in% c(2, 3, 4), grade %in% c(5, 6, 7, 8, 9, 10)) |>
+
+  mutate(
+    condition = factor(condition, levels = sort(unique(condition))),
+    grade     = factor(grade,     levels = sort(unique(grade))),
+    zipcode   = factor(zipcode,   levels = sort(unique(zipcode)))
+  )
 
 # These lines display the structure of df_primary, the minimum year built, and the unique bathroom counts in the filtered dataset.
 str(df_primary)
@@ -105,14 +122,19 @@ print(vif_df |> arrange(desc(VIF)))
 
 df_clean <- df_clean |>
   mutate(
-    condition = factor(condition),
-    grade = factor(grade, levels = sort(unique(df$grade))),  # use full set of grades
-    zipcode = factor(zipcode, levels = sort(unique(df$zipcode)))  # full zip levels
+    condition = factor(condition, levels = sort(unique(condition))),
+    grade = factor(grade, levels = sort(unique(grade))),       # ensure all grade levels are preserved
+    zipcode = factor(zipcode, levels = sort(unique(zipcode)))    # ensure all zipcodes are preserved
   )
 
 
-# 5. Prediction for Abhinav’s property 
-# creates a one-row tibble representing a new house with specified characteristics, matching factor levels from df_primary, for use in prediction
+
+# ---- 10. Prediction for Abhinav’s property ----
+# This code creates a one-row tibble representing a new house with specified characteristics, matching factor levels from df_primary, for use in prediction.
+# First, check what grades actually exist in your data
+table(df_primary$grade)
+
+# Then use one of the existing grades, e.g., grade 6:
 new_house <- tibble(
   bedrooms       = 4,
   bathrooms      = 3,
@@ -120,7 +142,7 @@ new_house <- tibble(
   sqft_lot       = 250000,
   floors         = 2,
   condition      = factor(4, levels(df_primary$condition)),
-  grade          = factor(5, levels(df_primary$grade)),
+  grade          = factor(6, levels(df_primary$grade)),  # Changed from 5 to 6
   sqft_above     = 2600,
   sqft_basement  = 1000,
   yr_built       = 1986,
