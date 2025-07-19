@@ -1,15 +1,16 @@
-# == Kansas City Housing – Full Analysis for Group Three ==
+# == Final Project Submission == Kansas City Housing Full Analysis for Group Three ==
 
 # ---- 1. Packages ----
 packages <- c(
-  "readxl",   # read Excel
-  "dplyr", "tidyr",          # data wrangling
-  "ggplot2", "ggpubr",       # plotting
-  "stringr",                 # string helpers
-  "broom",                   # tidy model outputs
-  "car",                     # VIF
-  "sandwich", "lmtest",      # robust SEs
-  "multcomp", "multcompView" # Tukey HSD tools
+  "readxl",                   # read Excel
+  "dplyr", "tidyr",           # data wrangling
+  "ggplot2", "ggpubr",        # plotting
+  "stringr",                  # string helpers
+  "broom",                    # tidy model outputs
+  "car",                      # VIF
+  "sandwich", "lmtest",       # robust SEs
+  "multcomp", "multcompView", # Tukey HSD tools
+  "here"                      # for file paths
 )
 
 # This line loads each package, installing it first if it's missing, and hides the output
@@ -18,10 +19,26 @@ invisible(lapply(packages, function(pkg){
   library(pkg, character.only = TRUE)
 }))
 
+# ---- 1.1 Install & load packages ----
+invisible(lapply(packages, function(pkg) {
+  if (!require(pkg, character.only = TRUE)) {
+    install.packages(pkg, quiet = TRUE)
+    library(pkg, character.only = TRUE)
+  } else {
+    library(pkg, character.only = TRUE)
+  }
+}))
+
 
 # ---- 2. Load & clean raw data ----
+# file_path <- here("Kansas City Housing Raw Data.xlsx")
 file_path <- "Kansas City Housing Raw Data.xlsx"
-df        <- read_excel(file_path)
+
+# Safety check: stop with a clear message if file is missing
+if (!file.exists(file_path)) {
+  stop("ERROR: 'Kansas City Housing Raw Data.xlsx' not found.
+       Make sure it is in the SAME folder as this R script or the RStudio project.")
+}
 
 # Count of zero values in each column
 zero_counts <- colSums(df == 0, na.rm = TRUE)
