@@ -1,126 +1,77 @@
-
-setwd("/Users/andyburnett/Library/Mobile Documents/com~apple~CloudDocs/Desktop/X03.27.25/Education/Graduate/USF Grad/Classes/SU25/QMB6304_Stats_1/group_project")
-getwd()
-
 # == Kansas City Housing – Full Analysis for Group Three ==
 
 # ---- 1. Packages ----
 packages <- c(
   "readxl",   # read Excel
-  "dplyr", "tidyr",           # data wrangling
-  "ggplot2", "ggpubr",        # plotting
-  "stringr",                  # string helpers
-  "broom",                    # tidy model outputs
-  "car",                      # VIF
-  "sandwich", "lmtest",       # robust SEs
-  "multcomp", "multcompView", # Tukey HSD tools
-  "tibble",
-  "here"
+  "dplyr", "tidyr",          # data wrangling
+  "ggplot2", "ggpubr",       # plotting
+  "stringr",                 # string helpers
+  "broom",                   # tidy model outputs
+  "car",                     # VIF
+  "sandwich", "lmtest",      # robust SEs
+  "multcomp", "multcompView" # Tukey HSD tools
 )
 
-# ---- 1.1 Install & load packages ----
-invisible(lapply(packages, function(pkg) {
-  if (!require(pkg, character.only = TRUE)) {
-    install.packages(pkg, quiet = TRUE)
-    library(pkg, character.only = TRUE)
-  } else {
-    library(pkg, character.only = TRUE)
-  }
+# This line loads each package, installing it first if it's missing, and hides the output
+invisible(lapply(packages, function(pkg){
+  if(!require(pkg, character.only = TRUE)) install.packages(pkg, quiet = TRUE)
+  library(pkg, character.only = TRUE)
 }))
 
 
 # ---- 2. Load & clean raw data ----
-# file_path <- here("Kansas City Housing Raw Data.xlsx")
 file_path <- "Kansas City Housing Raw Data.xlsx"
+df        <- read_excel(file_path)
 
-# Safety check: stop with a clear message if file is missing
-if (!file.exists(file_path)) {
-  stop("ERROR: 'Kansas City Housing Raw Data.xlsx' not found.
-       Make sure it is in the SAME folder as this R script or the RStudio project.")
-}
-
-df <- read_excel(file_path)
-
-
-# === 2.1 Report the number of zeros before replacing ===
-zero_counts <- sapply(df, function(col) sum(col == 0, na.rm = TRUE))
-cat("\n=== Zero Value Counts per Column ===\n") # REQUIRED
+# Count of zero values in each column
+zero_counts <- colSums(df == 0, na.rm = TRUE)
 print(zero_counts)
 
-# Total number of zeros in entire dataset
-total_zeros <- sum(zero_counts)
-cat("Total number of zero values in dataset:", total_zeros, "\n") # REQUIRED
-
-# === 2.2 Report missing values before any replacements ===
+# Total number of missing values
 total_nas <- sum(is.na(df))
-cat("\nTotal missing values BEFORE replacing zeros:", total_nas, "\n") # REQUIRED
+cat("Total missing values:", total_nas, "\n")
 
+# Missing values per column
 missing_by_col <- colSums(is.na(df))
-cat("\nMissing values per column BEFORE replacing zeros:\n") # REQUIRED
 print(missing_by_col)
 
-# === 2.3 Replace zeros with NA ===
-df[df == 0] <- NA # REQUIRED
-
-# === 2.4 Recheck missing values after replacing zeros ===
-total_nas_after <- sum(is.na(df))
-cat("\nTotal missing values AFTER replacing zeros:", total_nas_after, "\n")
-
-missing_by_col_after <- colSums(is.na(df))
-cat("\nMissing values per column AFTER replacing zeros:\n")
-print(missing_by_col_after)
+# replace explicit zeros with NA
+df[df == 0] <- NA
 
 # Removes the listed columns from df and drops any rows with missing values, saving as df_clean.
-drop_cols <- c("id", "date", "waterfront", "view", "yr_renovated") # REQUIRED
+drop_cols <- c("id", "date", "waterfront", "view", "yr_renovated")
 df_clean  <- dplyr::select(df, -all_of(drop_cols)) |> drop_na()
 
-# Converts the condition, grade, and zip code columns in df_clean into categorical variables (factors).
-df_clean <- df_clean |> # <<<<<<<< ------ Cleaned primary data
-  mutate(across(c(condition, grade, zipcode), as.factor)) # REQUIRED
+# Converts the condition, grade, and zipcode columns in df_clean into categorical variables (factors).
+df_clean <- df_clean |>
+  mutate(across(c(condition, grade, zipcode), as.factor))
 
 # ---- 3. Primary analysis set ----
-# This code sets a random seed for reproducibility, filters rows where yr_built > 1950 and bedrooms is between 2 and 4, then randomly samples 500 rows from df_clean into df_primary.
-set.seed(50685) # From U00150685
+# This code sets a random seed for reproducibility, filters rows where yr_built > 1950 and berooms is between 2 and 4, then randomly samples 500 rows from df_clean into df_primary.
+set.seed(50685)
 
 df_primary <- df_clean |>
-  filter(
-    yr_built >= 1950,              # only properties built 1950 or later - # REQUIRED
-    bedrooms %in% c(2, 3, 4),      # only 2, 3, or 4 bedrooms -            # REQUIRED
-    grade %in% c(5, 6, 7, 8, 9, 10) # only valid grades -                  # REQUIRED
-  ) |>
-  sample_n(500) |>                 # <-- randomly sample 500 properties -  # REQUIRED
+    filter(yr_built > 1950, bedrooms %in% c(2, 3, 4), grade %in% c(5, 6, 7, 8, 9, 10)) |>
+
   mutate(
     condition = factor(condition, levels = sort(unique(condition))),
     grade     = factor(grade,     levels = sort(unique(grade))),
     zipcode   = factor(zipcode,   levels = sort(unique(zipcode)))
   )
 
-# === Primary Dataset Validation ===
-cat("\n=== Primary Dataset Validation ===\n") # REQUIRED
-
-# 1. Check that all year built values are >= 1950
-cat("Minimum year built in df_primary:", min(df_primary$yr_built), "\n")
-
-# 2. Show unique bedroom values (should only be 2, 3, 4)
-cat("Unique bedroom counts in df_primary:", unique(df_primary$bedrooms), "\n")
-
-# 3. Confirm the sample size is exactly 500
-cat("Number of properties in df_primary:", nrow(df_primary), "\n")
-
-# Displays the structure of df_primary, the minimum year built, and the unique bathroom counts in the filtered dataset.
-str(df_primary) # REQUIRED
+# These lines display the structure of df_primary, the minimum year built, and the unique bathroom counts in the filtered dataset.
+str(df_primary)
+min(df_primary$yr_built)
 unique(df_primary$bathrooms)
 
-
-# ---- 4. Confidence interval & t-test ----# REQUIRED
+# ---- 4. Confidence interval & t-test ----
 # This code calculates the 95% confidence interval for price and prints it as a formatted dollar range.
 ci95 <- t.test(df_primary$price, conf.level = 0.95)$conf.int
 cat(sprintf("95%% CI for price: $%0.0f – $%0.0f\n", ci95[1], ci95[2]))
 
 # This code performs a one-tailed t-test to check if the mean price is greater than $650,000 and prints the t-statistic and p-value.
-tt  <- t.test(df_primary$price, mu = 650000, alternative = "greater") # REQUIRED
+tt  <- t.test(df_primary$price, mu = 650000, alternative = "greater")
 cat(sprintf("t = %.2f, one-tailed p = %.4f\n", tt$statistic, tt$p.value))
-
 # Regression
 # 1. Full multiple-regression model
 # fits a multiple linear regression model predicting price using the listed variables from df_primary and displays a summary of the results
@@ -135,7 +86,7 @@ summary(full_mod)
 
 # Reduced model via backward elimination
 # performs backward stepwise regression on full_mod to remove non-significant variables and displays the summary of the simplified model
-reduced_mod <- step(full_mod, direction = "backward", trace = 0) # REQUIRED
+reduced_mod <- step(full_mod, direction = "backward", trace = 0)
 summary(reduced_mod)
 
 # 2. Robust (HC1) SEs
@@ -148,7 +99,7 @@ print(robust_se)
 ggplot(reduced_mod, aes(.fitted, .resid)) +
   geom_point(alpha = .6) +
   geom_smooth(se = FALSE, colour = "red") +
-  labs(title = "3. Residuals vs Fitted", x = "Fitted values", y = "Residuals") +
+  labs(title = "Residuals vs Fitted", x = "Fitted values", y = "Residuals") +
   theme_minimal()
 
 ## creates a Q-Q plot of the residuals from reduced_mod to assess whether they are normally distributed
@@ -175,10 +126,10 @@ df_clean <- df_clean |>
 
 
 
-# ---- 5. Prediction for Abhinav’s property ----
+# ---- 10. Prediction for Abhinav’s property ----
 # This code creates a one-row tibble representing a new house with specified characteristics, matching factor levels from df_primary, for use in prediction.
 # First, check what grades actually exist in your data
-table(df_primary$grade) # REQUIRED
+table(df_primary$grade)
 
 # Then use one of the existing grades, e.g., grade 6:
 new_house <- tibble(
@@ -188,10 +139,10 @@ new_house <- tibble(
   sqft_lot       = 250000,
   floors         = 2,
   condition      = factor(4, levels(df_primary$condition)),
-  grade          = factor(6, levels(df_primary$grade)),  # Changed from 5 to 6 <<<-------------- ADDRESS THIS
+  grade          = factor(6, levels(df_primary$grade)),  # Changed from 5 to 6
   sqft_above     = 2600,
   sqft_basement  = 1000,
-  yr_built       = 1989, # <<<-------------- ADDRESS THIS
+  yr_built       = 1986,
   zipcode        = factor(98133, levels(df_primary$zipcode)),
   lat            = 47.3754,
   long           = -122.353
@@ -202,28 +153,29 @@ pred_price <- predict(reduced_mod, newdata = new_house, interval = "prediction")
 cat(sprintf("Predicted price: $%0.2f (95%% PI: %0.2f – %0.2f)\n",
             pred_price[1], pred_price[2], pred_price[3]))
 
-# ---- 6. One-way ANOVAs ----
-# ||== 95% family-wise CI (bedrooms) ==||
-# This code performs ANOVA on price by BEDROOMS (REQUIRED), tests for equal variances, shows the ANOVA summary, and plots Tukey's HSD for group comparisons
-anova_bed <- aov(price ~ factor(bedrooms), data = df_primary) # REQUIRED
-leveneTest(price ~ factor(bedrooms), data = df_primary) # REQUIRED
+# ---- 11. One-way ANOVAs ----
+# This code performs ANOVA on price by bedrooms, tests for equal variances, shows the ANOVA summary, and plots Tukey's HSD for group comparisons
+anova_bed <- aov(price ~ factor(bedrooms), data = df_primary)
+leveneTest(price ~ factor(bedrooms), data = df_primary)
 summary(anova_bed)
 plot(TukeyHSD(anova_bed), las = 1)
 
-# This code performs ANOVA on price by FLOORS (REQUIRED), tests for equal variances,
+# This code performs ANOVA on price by floors, tests for equal variances,
 # displays the ANOVA summary, and plots Tukey’s HSD results.
-# ||== 95% family-wise CI (floors) ==||
 anova_floor <- aov(price ~ factor(floors), data = df_primary)
 leveneTest(price ~ factor(floors), data = df_primary)
 summary(anova_floor)
 plot(TukeyHSD(anova_floor), las = 1)
 
-# This code performs ANOVA on price by CONDITION (REQUIRED), tests for equal variances, shows the summary, and plots Tukey’s HSD to compare condition levels.
-# ||== 95% family-wise CI (condition) ==||
+# This code performs ANOVA on price by condition, tests for equal variances, shows the summary, and plots Tukey’s HSD to compare condition levels.
 anova_cond <- aov(price ~ condition, data = df_primary)
 leveneTest(price ~ condition, data = df_primary)
 summary(anova_cond)
 plot(TukeyHSD(anova_cond), las = 1)
 
+<<<<<<< HEAD:group1_final_project.r
+# == End of analysis ==
+=======
 # ======================
 ## End of analysis ##
+>>>>>>> 4cdca33092397d1834728e4cd05d63e20f996527:group3_final_project.r
